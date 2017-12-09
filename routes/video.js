@@ -8,4 +8,5 @@ router.get('/', VideoController.getVideos);
 
 router.post('/', VideoController.createVideo);
 
+router.get('/:quality/:id', VideoController.getSingleVideo);
 module.exports = router;

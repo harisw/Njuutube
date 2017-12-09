@@ -41,50 +41,63 @@ exports.createVideo = async function(video, file){
         console.log(video.user);
         if(err)
             throw ("Error while renaming"+err);
-        prepareVideo(newPath, userPath, newName, (err, resultVideo) => {
-            if(err){
-                throw ("Error while prepare video "+err);                
-            }
-            var newVideo = new Video({
-                title: video.title,
-                description: video.description,
-                date: new Date(),
-                oriPath: videoResult.path,
-                lowPath: videoResult.low,
-                highPath: videoResult.high,
-                idUser: video.user,
-                tags: video.tags
-            });
-            console.log(newVideo);
-            try {
-                console.log("masuk");
-                videoResult.save()
-                    .then((savedVideo) => {
+        prepareVideo(newPath, userPath, newName)
+            .then((videoResult) => {
+                console.log("masuk sini");            
+                if(err){
+                    throw ("Error while prepare video "+err);                
+                }
+                var newVideo = new Video({
+                    title: video.title,
+                    description: video.description,
+                    date: new Date(),
+                    oriPath: videoResult.path,
+                    lowPath: videoResult.low,
+                    highPath: videoResult.high,
+                    idUser: video.user,
+                    tags: video.tags
+                });
+                console.log(newVideo);
+                try {
+                    console.log("masuk");
+                    videoResult.save(function (savedVideo) {
                         return savedVideo;
-                    });   
-            } catch (error) {
-                throw Error('Error while saving file');
-            }
-            return savedVideo
-        });
+                    });
+                } catch (error) {
+                    throw Error('Error while saving file');
+                }
+            });
     });
 }
 
-function prepareVideo(path, userPath, name, callback){
+exports.getSingleVideo = async function(id){
+    try {
+        var video = await Video.findById(id);
+        
+        return video;
+    } catch (error) {
+        throw Error("Error finding video");
+    }
+}
+
+async function prepareVideo(path, userPath, name){
     //Watermark the video
-    cmd.exec(`ffmpeg -y -i ${path} -i ${watermarkPath} -filter_complex "[1]lut=a=val*0.3[a];[0][a]overlay=0:0" -c:v libx264 -an ${userPath +"water_"+ name}`, (err) =>{
+    await cmd.exec(`ffmpeg -y -i ${path} -i ${watermarkPath} -filter_complex "[1]lut=a=val*0.3[a];[0][a]overlay=0:0" -c:v libx264 -an ${userPath +"water_"+ name}`, (err) =>{
             if(err)
                 throw err;
+            console.log("manis dan selalu disiplin");                 
             cmd.exec(`ffmpeg -i ${userPath +"water_"+ name} -c:v libx264 -preset slow -crf 45 -c:a copy ${userPath +"low_"+ name}`, (err) => {
                     if(err)
                         throw err;
+                    console.log("manis dan selalu disiplin");                                         
                     cmd.exec(`ffmpeg -i ${userPath +"water_"+ name} -c:v libx264 -preset slow -crf 19 -c:a copy ${userPath +"high_"+ name}`, (err) => {
                         if(err)
-                                throw err;
+                            throw err;
+                        console.log("manis dan selalu disiplin");                                             
                     });
             });
     });
     return { path: videoPath+name,
-             low: 'low_'+videoPath+name,
-             high: 'high_'+videoPath+name };
+             low: videoPath+'low_'+name,
+             high: videoPath+'high_'+name };
 }
